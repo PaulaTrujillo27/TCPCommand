@@ -3,85 +3,72 @@ package main;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
 public class Client {
+	
+	private static Socket socket;
+	private static Scanner scanner;
+	private static BufferedWriter bwriter;
+	private static BufferedReader breader;
 
 	public static void main(String[] args) {
 		// El papel del cliente es enviar una solicitud
-
-		try {
-
-			System.out.println("Enviando solicitud...");
-			try (Socket socket = new Socket("127.0.0.1",5000)) {
-				long start=0;
-				//También funciona con la dirección IP: 192.168.1.4
-				System.out.println("Conectados");
-
-				OutputStream os = socket.getOutputStream();
-				OutputStreamWriter osw = new OutputStreamWriter(os);
-				BufferedWriter bwriter = new BufferedWriter(osw);
-
-				InputStream is = socket.getInputStream();
-				InputStreamReader isr = new InputStreamReader(is);
-				BufferedReader breader = new BufferedReader(isr);
-				Scanner scanner = new Scanner(System.in);
-
-				while(true) {
-					String line = scanner.nextLine();
-					//Enviar mensaje del menu
-					
-					bwriter.write(line+"\n");
-					bwriter.flush();
-					if(line.contains("RTT")) {
-						start=System.nanoTime();
+		
+		scanner = new Scanner(System.in);
+		while(true) {
+			String line = scanner.nextLine();
+			try {
+				socket = new Socket("127.0.0.1",5000);
+				bwriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+				breader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+				bwriter.write(line+"\n");
+				bwriter.flush();
+				actions(line);
+			} catch (UnknownHostException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	public static void actions(String compare) throws IOException {
+					if(compare.equalsIgnoreCase("RTT")) {
+						long start=System.nanoTime();
 						bwriter.write(message1024Bytes()+"\n");
 						bwriter.flush();
 						//Recibir mensaje
 						String recibido = breader.readLine();
-						long end=System.nanoTime();
-						Double sendingTime=(double)(end-start);
-						sendingTime=sendingTime/1000000;
-						String result=sendingTime+" Segundos";
+						long sendingTime= System.nanoTime()-start;
+						String result=sendingTime+" Nanosegundos";
 						
 						System.out.println("Mensaje recibido: "+recibido);
 						System.out.println(result);
 						
-					}else if(line.contains("speed")) {
-						start=System.nanoTime();
+					}else if(compare.equalsIgnoreCase("speed")) {
+						long start=System.nanoTime();
 						bwriter.write(message8192Bytes()+"\n");						
 						bwriter.flush();
 						//Recibir mensaje
 						String recibido = breader.readLine();
-						long end=System.nanoTime();
-						Double sendingTime=(double)(end-start);
+						long sendingTime=System.nanoTime()-start;
 						sendingTime=sendingTime/1000000;
-						String result=sendingTime+" Segundos";
+						sendingTime=8/sendingTime;
 						System.out.println("Mensaje recibido: "+recibido);
-						System.out.println(result);
+						System.out.println("Velocidad de transferencia: "+sendingTime+" KB/s");
 					}else {
 						String recibido = breader.readLine();
 						System.out.println("Mensaje recibido: "+recibido);
 					}
 				}
-			}
-
-
-
-		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
+	
 	public static String message1024Bytes() {
 		return "Lorem ipsum dolor sit amet,"
 				+ "consectetuer adipiscing elit. "
